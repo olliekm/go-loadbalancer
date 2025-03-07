@@ -1,5 +1,6 @@
-# go-loadbalancer
-simple load balancer in go
+![alt](https://64.media.tumblr.com/3c1c16ee3b29662d997f432cac320ef1/tumblr_nj3kbxu32l1u78x0oo1_500.gif)
+# PerfectlyBalanced
+Building out robust load balancer
 
 ## todos:
 1. Improve Load Balancing Strategies
