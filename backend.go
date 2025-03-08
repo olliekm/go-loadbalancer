@@ -4,15 +4,17 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"sync"
+	"time"
 )
 
 // Simple backend struct
 // Reverse proxy allows for requests to pass directly to the backend and allows balancer to return the result
 type Backend struct {
-	URL          *url.URL
-	Alive        bool
-	mux          sync.RWMutex
-	ReverseProxy *httputil.ReverseProxy
+	URL           *url.URL
+	Alive         bool
+	mux           sync.RWMutex
+	ReverseProxy  *httputil.ReverseProxy
+	ResponseTimes []time.Duration // Stores last N response times
 }
 
 // Race condition STUFF
@@ -36,3 +38,27 @@ func (b *Backend) IsAlive() (alive bool) {
 }
 
 // Race condition stuff ^^
+
+// Mutate the ResponseList by adding new duration and insuring only 10 responses
+func (b *Backend) AddResponseTime(duration time.Duration) {
+	b.mux.Lock()
+	defer b.mux.Unlock()
+	if len(b.ResponseTimes) >= 10 {
+		b.ResponseTimes = b.ResponseTimes[1:] // Only keep the most recent 10
+	}
+	b.ResponseTimes = append(b.ResponseTimes, duration)
+}
+
+// Returns average response time of a backend
+func (b *Backend) GetAverageResponseTime() time.Duration {
+	b.mux.RLock() // Since we only want reading use RLock
+	defer b.mux.RUnlock()
+	if len(b.ResponseTimes) == 0 {
+		return time.Hour // Edge case protection
+	}
+	var total time.Duration
+	for _, t := range b.ResponseTimes {
+		total += t // Add each time to total
+	}
+	return total / time.Duration(len(b.ResponseTimes)) // Turn len to time duration for math to work
+}
